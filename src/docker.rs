@@ -164,16 +164,33 @@ pub fn run(target: &Target,
         docker.args(&opts);
     }
 
-    docker
-        .args(&["-e", &format!("CROSS_RUNNER={}", runner.unwrap_or_else(String::new))])
-        .args(&["-v", &format!("{}:/xargo:Z", xargo_dir.display())])
-        .args(&["-v", &format!("{}:/cargo:Z", cargo_dir.display())])
-        // Prevent `bin` from being mounted inside the Docker container.
-        .args(&["-v", "/cargo/bin"])
-        .args(&["-v", &format!("{}:/{}:Z", mount_root.display(), mount_root.display())])
-        .args(&["-v", &format!("{}:/rust:Z,ro", sysroot.display())])
-        .args(&["-v", &format!("{}:/target:Z", target_dir.display())])
-        .args(&["-w", &mount_root.display().to_string()]);
+    match std::env::var("DOCKER_TOOLBOX_INSTALL_PATH") {
+        Ok(_) => {
+            docker
+                .args(&["-e", &format!("CROSS_RUNNER={}", runner.unwrap_or_else(String::new))])
+                .args(&["-v", &format!("{}:/xargo:Z", xargo_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/cargo:Z", cargo_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                // Prevent `bin` from being mounted inside the Docker container.
+                .args(&["-v", "/cargo/bin"])
+                .args(&["-v", &format!("{}:/{}:Z", mount_root.display().to_string().replace("C:", "/c").replace("\\", "/"), mount_root.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/rust:Z,ro", sysroot.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/target:Z", target_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                .args(&["-w", &mount_root.display().to_string().to_string().replace("C:", "/c").replace("\\", "/")]);
+        },
+        Err(_) => {
+            docker
+                .args(&["-e", &format!("CROSS_RUNNER={}", runner.unwrap_or_else(String::new))])
+                .args(&["-v", &format!("{}:/xargo:Z", xargo_dir.display())])
+                .args(&["-v", &format!("{}:/cargo:Z", cargo_dir.display())])
+                // Prevent `bin` from being mounted inside the Docker container.
+                .args(&["-v", "/cargo/bin"])
+                .args(&["-v", &format!("{}:/{}:Z", mount_root.display(), mount_root.display())])
+                .args(&["-v", &format!("{}:/rust:Z,ro", sysroot.display())])
+                .args(&["-v", &format!("{}:/target:Z", target_dir.display())])
+                .args(&["-w", &mount_root.display().to_string()]);
+        }
+    }
+
 
     if atty::is(Stream::Stdin) {
         docker.arg("-i");
