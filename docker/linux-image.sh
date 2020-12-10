@@ -6,15 +6,16 @@ set -euo pipefail
 main() {
     # arch in the rust target
     local arch="${1}" \
-          kversion=4.9.0-11
+          kversion=4.19.0-10
 
-    local debsource="deb http://http.debian.net/debian/ stretch main"
-    debsource="${debsource}\ndeb http://security.debian.org/ stretch/updates main"
+    local debsource="deb http://http.debian.net/debian/ buster main"
+    debsource="${debsource}\ndeb http://security.debian.org/ buster/updates main"
 
     local dropbear="dropbear-bin"
 
     local -a deps
     local kernel=
+    local libgcc="libgcc1"
 
     # select debian arch and kernel version
     case "${arch}" in
@@ -37,7 +38,7 @@ main() {
             kernel="${kversion}-5kc-malta"
             ;;
         powerpc)
-            # there is no stretch powerpc port, so we use jessie
+            # there is no buster powerpc port, so we use jessie
             # use a more recent kernel from backports
             kernel=4.9.0-0.bpo.6-powerpc
             debsource="deb http://archive.debian.org/debian jessie main"
@@ -56,10 +57,11 @@ main() {
             arch=ppc64
             # https://packages.debian.org/en/sid/linux-image-powerpc64
             kernel='*-powerpc64'
+            libgcc="libgcc-s1"
             debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
             debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
             # sid version of dropbear requires these dependencies
-            deps=(libtommath1:ppc64 libtomcrypt1:ppc64 libgmp10:ppc64)
+            deps=(libtommath1:ppc64 libtomcrypt1:ppc64 libgmp10:ppc64 libcrypt1:ppc64)
             ;;
         powerpc64le)
             arch=ppc64el
@@ -73,10 +75,11 @@ main() {
             # there is no stable port
             # https://packages.debian.org/en/sid/linux-image-sparc64
             kernel='*-sparc64'
+            libgcc="libgcc-s1"
             debsource="deb http://ftp.ports.debian.org/debian-ports unstable main"
             debsource="${debsource}\ndeb http://ftp.ports.debian.org/debian-ports unreleased main"
             # sid version of dropbear requires these dependencies
-            deps=(libtommath1:sparc64 libtomcrypt1:sparc64 libgmp10:sparc64)
+            deps=(libtommath1:sparc64 libtomcrypt1:sparc64 libgmp10:sparc64 libcrypt1:sparc64)
             ;;
         x86_64)
             arch=amd64
@@ -135,7 +138,7 @@ main() {
         "busybox:${arch}" \
         "${dropbear}:${arch}" \
         "libc6:${arch}" \
-        "libgcc1:${arch}" \
+        "${libgcc}:${arch}" \
         "libstdc++6:${arch}" \
         "linux-image-${kernel}:${arch}" \
         ncurses-base \
