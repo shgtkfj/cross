@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 use std::{env, fs};
+use regex::Regex;
 
 use atty::Stream;
 use error_chain::bail;
@@ -174,16 +175,17 @@ pub fn run(target: &Target,
 
     match std::env::var("DOCKER_TOOLBOX_INSTALL_PATH") {
         Ok(_) => {
+            let re = Regex::new(r"^([A-Z]):(.*)").unwrap();
             docker
                 .args(&["-e", &format!("CROSS_RUNNER={}", runner.unwrap_or_else(String::new))])
-                .args(&["-v", &format!("{}:/xargo:Z", xargo_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
-                .args(&["-v", &format!("{}:/cargo:Z", cargo_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/xargo:Z", re.replace(xargo_dir.display().to_string().as_str(), "/c$2").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/cargo:Z", re.replace(cargo_dir.display().to_string().as_str(), "/c$2").replace("\\", "/"))])
                 // Prevent `bin` from being mounted inside the Docker container.
                 .args(&["-v", "/cargo/bin"])
-                .args(&["-v", &format!("{}:/{}:Z", mount_root.display().to_string().replace("C:", "/c").replace("\\", "/"), mount_root.display().to_string().replace("C:", "/c").replace("\\", "/"))])
-                .args(&["-v", &format!("{}:/rust:Z,ro", sysroot.display().to_string().replace("C:", "/c").replace("\\", "/"))])
-                .args(&["-v", &format!("{}:/target:Z", target_dir.display().to_string().replace("C:", "/c").replace("\\", "/"))])
-                .args(&["-w", &mount_root.display().to_string().to_string().replace("C:", "/c").replace("\\", "/")]);
+                .args(&["-v", &format!("{}:/{}:Z", re.replace(mount_root.display().to_string().as_str(), "/c$2").replace("\\", "/"), re.replace(mount_root.display().to_string().as_str(), "/c$2").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/rust:Z,ro", re.replace(sysroot.display().to_string().as_str(), "/c$2").replace("\\", "/"))])
+                .args(&["-v", &format!("{}:/target:Z", re.replace(target_dir.display().to_string().as_str(), "/c$2").replace("\\", "/"))])
+                .args(&["-w", &re.replace(&mount_root.display().to_string().to_string().as_str(), "/c$2").replace("\\", "/")]);
         },
         Err(_) => {
             docker
